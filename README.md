@@ -5,77 +5,90 @@
 ## Qué se hizo
 
 Se tomó el frontend de la Semana 10 **`modulo6_2_mercado.html`** (Datos de Mercado) y se creó
-**`modulo6_2_mercado_conectado.html`**, donde la generación de velas OHLC con una función
+**`modulo6_2_mercado_ENTREGABLE5.html`**, donde la generación de velas OHLC con una función
 pseudo-aleatoria (`seed()` basada en `Math.sin`, equivalente a `Math.random()`) fue **reemplazada
 por `fetch()` real al backend**.
 
-Esto demuestra el ciclo completo: **Frontend → fetch() → Backend Flask → yfinance → JSON → Gráfico**.
+Esto demuestra el ciclo completo: **Frontend → fetch() → Backend FastAPI (Colab + ngrok) → yfinance → JSON → Gráfico**.
 
 | Antes | Después |
 |---|---|
-| `genOHLC(ticker, nDays)` generaba velas con `Math.sin()` como semilla pseudo-aleatoria | `fetchOHLC(ticker, interval)` hace `fetch()` a `GET /api/market/<ticker>` y trae datos OHLCV **reales** vía `yfinance` |
-| Precios del watchlist hardcodeados en el HTML | `fetchQuotes()` hace `fetch()` a `GET /api/quotes` y trae precio + variación % reales |
-| Sin manejo de errores de red | Indicador de conexión (punto verde/ámbar/rojo) + banner si el backend no responde |
+| `genOHLC(ticker, nDays)` generaba velas con `Math.sin()` como semilla pseudo-aleatoria | `fetchLSTM(ticker, horizonte)` hace `fetch()` a `GET /api/lstm/{ticker}` y trae datos **reales** del backend |
+| Precios del watchlist hardcodeados en el HTML | Los valores de precio y métricas se actualizan desde la respuesta JSON del backend |
+| Sin manejo de errores de red | Panel de diagnóstico + indicador de conexión (verde/rojo) + detección de errores CORS, timeout y HTTP |
 
-Los cálculos de **SMA20, SMA50 y Bandas de Bollinger** se mantienen en el cliente (JavaScript),
-ya que son lógica de presentación que no requiere ir y volver al servidor — el backend solo
-entrega los datos crudos (OHLCV), separando responsabilidades como en una arquitectura real.
+Los cálculos de **SMA, Bollinger y error %** se mantienen en el cliente (JavaScript),
+ya que son lógica de presentación — el backend entrega los datos crudos, separando
+responsabilidades como en una arquitectura real.
 
 ## Estructura de archivos
 
 ```
 entregable5/
-├── modulo6_2_mercado_conectado.html   ← Frontend modificado (Entregable 5)
-├── backend/
-│   ├── app.py                          ← API Flask
-│   └── requirements.txt
-└── README_ENTREGABLE5.md
+├── modulo6_2_mercado_ENTREGABLE5.html   ← Frontend modificado (Entregable 5)
+├── API_REST_con_FastAPI.ipynb            ← Backend FastAPI (Google Colab)
+└── README.md
 ```
+
+> El backend vive en el Notebook `API_REST_con_FastAPI.ipynb` ejecutado en Google Colab,
+> expuesto públicamente mediante **ngrok**. No se requiere `app.py` ni `requirements.txt`
+> separados: la Celda 1 del Notebook instala las dependencias y la Celda 3 lanza el servidor.
 
 ## Cómo ejecutarlo
 
-### 1. Levantar el backend
+### 1. Levantar el backend (Google Colab)
 
-```bash
-cd backend
-pip install -r requirements.txt
-python app.py
-```
+1. Abre `API_REST_con_FastAPI.ipynb` en Google Colab.
+2. Ejecuta las **3 celdas en orden**.
+3. La Celda 3 imprimirá la URL pública de ngrok, por ejemplo:
+   ```
+   https://frugality-protract-sublime.ngrok-free.dev
+   ```
+4. Verifica que el backend está vivo abriendo en el navegador:
+   `https://<tu-url-ngrok>/api/salud`  
+   Deberías ver: `{"status": "healthy", ...}`
 
-Esto inicia el servidor en `http://127.0.0.1:5000`. Verifica que está vivo en:
-`http://127.0.0.1:5000/api/health`
+> **Nota:** La URL de ngrok cambia cada vez que se reinicia la sesión de Colab (sesiones
+> gratuitas duran ~2 horas). Cuando esto ocurra, vuelve a ejecutar la Celda 3 y copia
+> la nueva URL.
 
-### 2. Abrir el frontend
+### 2. Conectar el frontend
 
-Abre `modulo6_2_mercado_conectado.html` directamente en el navegador (doble clic, o
-`Live Server` en VSCode). El punto de estado en la barra superior pasará de
-**"CONECTANDO AL BACKEND…"** a **"MERCADO EN VIVO · API CONECTADA"** (verde) si todo
-funciona, o mostrará un banner rojo si el backend no está corriendo.
+1. Abre `modulo6_2_mercado_ENTREGABLE5.html` en el navegador.
+2. Pega la URL de ngrok en el campo **Backend API** (barra azul oscura superior).
+3. Pulsa **Conectar** — el indicador pasará a verde: **"API EN VIVO"**.
+4. Haz clic en cualquier ticker del watchlist para cargar datos reales del backend.
 
-> Si en algún momento cambias el puerto o despliegas el backend en otra URL, solo edita
-> la constante `API_BASE_URL` al inicio del `<script>` del HTML.
+> Si el navegador bloquea la conexión (página de advertencia de ngrok), usa el botón
+> **🔗 Probar URL** para abrir `/api/salud` en una pestaña nueva, acepta la advertencia
+> y vuelve a pulsar Conectar.
 
 ## Endpoints del backend
 
 | Endpoint | Descripción |
 |---|---|
-| `GET /api/market/<ticker>?interval=1D\|1W\|1M\|3M\|1A` | Velas OHLCV reales (fechas, open, high, low, close, volumen) para el ticker e intervalo pedidos |
-| `GET /api/quotes` | Precio actual y variación % de todos los tickers del watchlist (AAPL, MSFT, GOOGL, NVDA, BTC-USD) |
-| `GET /api/health` | Chequeo de salud del servicio |
+| `GET /api/salud` | Chequeo de salud del servicio |
+| `GET /api/lstm/{ticker}?horizonte={n}` | Histórico real vs. predicho + proyección futura a `n` días con bandas de confianza al 95% |
+| `GET /api/rnns/{ticker}` | Señales de clasificación de 4 arquitecturas RNN (LSTM, BiLSTM, GRU, SimpleRNN) |
 
-Ejemplo de respuesta de `/api/market/AAPL?interval=1M`:
+Ejemplo de respuesta de `/api/lstm/FSM?horizonte=30`:
 ```json
 {
-  "ticker": "AAPL",
-  "name": "Apple Inc.",
-  "cap": "2.94T",
-  "dates": ["2026-04-01", "2026-04-02", "..."],
-  "opens": [170.20, 171.05, "..."],
-  "highs": [172.10, 172.80, "..."],
-  "lows": [169.40, 170.30, "..."],
-  "closes": [171.50, 172.10, "..."],
-  "vols": [48230000, 51120000, "..."],
-  "fuente": "Yahoo Finance (yfinance)"
+  "ticker": "FSM",
+  "metricas_error": {
+    "rmse_usd": 0.3542,
+    "rmse_porcentaje": 4.0,
+    "mae_usd": 0.2834,
+    "r2_score": 0.885
+  },
+  "historico_validacion": [
+    { "fecha": "2026-05-01", "real": 8.91, "predicho": 8.87 },
+    "..."
+  ],
+  "proyeccion_futura": [
+    { "fecha": "2026-06-21", "prediccion_usd": 9.05, "banda_min": 8.35, "banda_max": 9.75 },
+    "..."
+  ]
 }
 ```
 
@@ -83,9 +96,11 @@ Ejemplo de respuesta de `/api/market/AAPL?interval=1M`:
 
 - El backend usa `yfinance` (la misma librería que el Notebook 2 — Clasificador SVC), así que
   los precios mostrados son datos bursátiles reales, no simulados.
-- Si `yfinance` no logra conectarse a Yahoo Finance (sin internet, ticker inválido, etc.), el
-  backend responde con un JSON de error y código HTTP apropiado (404/500); el frontend lo
-  captura y muestra el banner de "Backend desconectado" en vez de inventar datos.
-- Este mismo patrón (endpoint Flask + `fetch()` + JSON) es el que se podría reusar para
-  conectar `datos_svc.json` (Notebook 2), los clasificadores RNN (Notebook 3) o el regresor
-  LSTM de pronóstico de precios (Notebook 4) a sus respectivos módulos del frontend.
+- Las señales **BUY / SELL / HOLD** del clasificador SVC (`datos_svc.json`, Notebook 2)
+  se muestran en el sidebar del frontend sin llamada adicional al backend, cargadas
+  directamente desde el JSON generado por el modelo.
+- Si el backend no responde (Colab desconectado, URL expirada, ticker inválido), el frontend
+  captura el error y muestra un panel de diagnóstico con la causa exacta y los pasos
+  para resolverlo, en vez de inventar datos.
+- Este mismo patrón (`fetch()` → endpoint FastAPI → JSON) es extensible para conectar
+  los clasificadores RNN (Notebook 3) o cualquier otro módulo del frontend al backend.
