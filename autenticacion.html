@@ -618,7 +618,7 @@
             // ----------------------------------------------------------------
             setBtnLoading('btn-register', true, 'Crear Cuenta');
             try {
-                const tickerBienvenida = profile === 'agresivo' ? 'BTC-USD' : 'BVL';
+                const tickerBienvenida = profile === 'agresivo' ? 'BTC-USD' : 'AAPL';
                 const respuesta = await fetch(`${API_BASE_URL}/api/rnns/${tickerBienvenida}`, {
                     method: 'GET',
                     headers: { 'ngrok-skip-browser-warning': 'true' }
@@ -723,7 +723,7 @@
             // ----------------------------------------------------------------
             setBtnLoading('btn-2fa', true, 'Verificar e Ingresar');
             try {
-                const respuesta = await fetch(`${API_BASE_URL}/api/lstm/BVL?horizonte=5`, {
+                const respuesta = await fetch(`${API_BASE_URL}/api/lstm/AAPL?horizonte=5`, {
                     method: 'GET',
                     headers: { 'ngrok-skip-browser-warning': 'true' }
                 });
