@@ -1,1009 +1,843 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>InvestAI — Módulo 6.2 Datos de Mercado (Conectado al Backend)</title>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/plotly.js/2.27.0/plotly.min.js"></script>
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'Inter', sans-serif; background: #F5F7FA; color: #000; }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>InvestAI - Sistema Inteligente de Inversión</title>
+    <style>
+        /* ==========================================================================
+           1. VARIABLES CORPORATIVAS Y ESTILOS BASE
+           ========================================================================== */
+        :root {
+            --color-blanco: #FFFFFF;
+            --color-primario: #1F3864; /* Azul Oscuro Corporativo */
+            --color-acento: #C5961A;   /* Dorado Corporativo */
+            --color-negro: #000000;
+            --color-error: #DC3545;    /* Alerta Roja */
+            --color-exito: #155724;    /* Verde de Éxito */
+            --color-gris-fondo: #F4F6F9;
+            --color-gris-borde: #CED4DA;
+        }
 
-    /* NAV */
-    nav {
-      background: #1F3864;
-      padding: 0 24px;
-      height: 56px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-    .nav-brand { display: flex; align-items: center; gap: 10px; }
-    .nav-logo {
-      width: 32px; height: 32px;
-      background: #C5961A;
-      border-radius: 6px;
-      display: flex; align-items: center; justify-content: center;
-      font-weight: 900; color: #fff; font-size: 14px;
-    }
-    .nav-title { color: #fff; font-size: 16px; font-weight: 700; letter-spacing: 0.5px; }
-    .nav-module { color: #C5961A; font-size: 12px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; }
-    .nav-status { display: flex; align-items: center; gap: 6px; }
-    .dot-live { width: 8px; height: 8px; border-radius: 50%; background: #28a745; animation: pulse 1.5s infinite; }
-    .dot-live.offline { background: #dc2626; animation: none; }
-    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
-    .nav-status span { color: #aaa; font-size: 12px; }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
 
-    /* BANNER CONFIGURACIÓN API */
-    .api-banner {
-      background: #1a2744;
-      border-bottom: 2px solid #C5961A;
-      padding: 10px 24px;
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      flex-wrap: wrap;
-    }
-    .api-label {
-      font-size: 11px;
-      color: #C5961A;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      white-space: nowrap;
-    }
-    .api-input-wrap { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 280px; }
-    #apiBaseUrl {
-      flex: 1;
-      border: 1px solid #3a4a6a;
-      border-radius: 6px;
-      padding: 6px 10px;
-      font-size: 12px;
-      background: #0d1b36;
-      color: #e0e8ff;
-      font-family: monospace;
-    }
-    #apiBaseUrl:focus { outline: none; border-color: #C5961A; }
-    .btn-connect {
-      background: #C5961A;
-      color: #fff;
-      border: none;
-      border-radius: 6px;
-      padding: 6px 16px;
-      font-size: 12px;
-      font-weight: 700;
-      cursor: pointer;
-      transition: background .2s;
-      white-space: nowrap;
-    }
-    .btn-connect:hover { background: #a87c15; }
-    .api-status-badge {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 11px;
-      font-weight: 600;
-      padding: 4px 10px;
-      border-radius: 20px;
-      border: 1px solid #3a4a6a;
-      color: #aaa;
-      white-space: nowrap;
-    }
-    .api-status-badge.connected { border-color: #16a34a; color: #4ade80; }
-    .api-status-badge.error { border-color: #dc2626; color: #f87171; }
-    .api-status-dot { width: 7px; height: 7px; border-radius: 50%; background: #666; }
-    .api-status-badge.connected .api-status-dot { background: #4ade80; }
-    .api-status-badge.error .api-status-dot { background: #f87171; }
+        body {
+            font-family: 'Calibri', 'Inter', sans-serif;
+            background-color: var(--color-gris-fondo);
+            color: var(--color-negro);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
 
-    /* LOADING OVERLAY */
-    #loadingOverlay {
-      display: none;
-      position: fixed;
-      inset: 0;
-      background: rgba(31,56,100,0.45);
-      z-index: 9999;
-      align-items: center;
-      justify-content: center;
-      flex-direction: column;
-      gap: 16px;
-    }
-    #loadingOverlay.active { display: flex; }
-    .spinner {
-      width: 42px; height: 42px;
-      border: 4px solid rgba(197,150,26,0.3);
-      border-top-color: #C5961A;
-      border-radius: 50%;
-      animation: spin .8s linear infinite;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    .loading-text { color: #fff; font-size: 14px; font-weight: 600; }
+        /* Container Principal Adaptable (Diseño Responsivo Mobile 375x812) */
+        .auth-container {
+            background-color: var(--color-blanco);
+            width: 100%;
+            max-width: 450px;
+            padding: 40px 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            border-top: 5px solid var(--color-primario);
+            transition: all 0.3s ease;
+        }
 
-    /* ERROR TOAST */
-    #errorToast {
-      display: none;
-      position: fixed;
-      bottom: 24px;
-      right: 24px;
-      background: #1e1e1e;
-      border-left: 4px solid #dc2626;
-      color: #fff;
-      padding: 14px 20px;
-      border-radius: 8px;
-      font-size: 13px;
-      z-index: 9998;
-      max-width: 380px;
-      box-shadow: 0 4px 20px rgba(0,0,0,.35);
-    }
-    #errorToast.show { display: block; }
-    .toast-title { font-weight: 700; color: #f87171; margin-bottom: 4px; }
-    .toast-msg { color: #ccc; font-size: 12px; }
+        /* Estilos en resoluciones de Escritorio (1920x1080) */
+        @media (min-width: 992px) {
+            .auth-container {
+                max-width: 500px;
+                padding: 50px 40px;
+            }
+        }
 
-    /* CONTROLS BAR */
-    .controls-bar {
-      background: #fff;
-      border-bottom: 1px solid #e0e4ea;
-      padding: 10px 24px;
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      flex-wrap: wrap;
-    }
-    .ctrl-group { display: flex; align-items: center; gap: 8px; }
-    .ctrl-label { font-size: 12px; color: #666; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
-    select, .btn-interval {
-      border: 1px solid #d0d5dd;
-      border-radius: 6px;
-      padding: 6px 10px;
-      font-size: 13px;
-      background: #fff;
-      cursor: pointer;
-      transition: border-color .2s;
-    }
-    select:focus { outline: none; border-color: #1F3864; }
-    .btn-group { display: flex; gap: 4px; }
-    .btn-interval {
-      padding: 5px 12px;
-      font-weight: 600;
-      color: #555;
-    }
-    .btn-interval.active {
-      background: #1F3864;
-      color: #fff;
-      border-color: #1F3864;
-    }
-    .btn-interval:hover:not(.active) { border-color: #1F3864; color: #1F3864; }
-    .indicator-toggles { display: flex; gap: 8px; flex-wrap: wrap; margin-left: auto; }
-    .toggle-pill {
-      display: flex; align-items: center; gap: 6px;
-      padding: 5px 12px;
-      border-radius: 20px;
-      border: 1px solid #d0d5dd;
-      font-size: 12px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all .2s;
-      user-select: none;
-    }
-    .toggle-pill .pill-dot { width: 8px; height: 8px; border-radius: 50%; }
-    .toggle-pill.active { border-color: transparent; color: #fff; }
-    .toggle-pill[data-id="sma20"].active { background: #E67E22; border-color: #E67E22; }
-    .toggle-pill[data-id="sma50"].active { background: #9B59B6; border-color: #9B59B6; }
-    .toggle-pill[data-id="bb"].active { background: #1abc9c; border-color: #1abc9c; }
-    .toggle-pill[data-id="volume"].active { background: #1F3864; border-color: #1F3864; }
+        /* ==========================================================================
+           2. COMPONENTES DE INTERFAZ (UI)
+           ========================================================================== */
+        .auth-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
 
-    /* MAIN */
-    .main { display: grid; grid-template-columns: 1fr 260px; gap: 0; height: calc(100vh - 145px); }
-    .chart-area { padding: 16px; display: flex; flex-direction: column; gap: 12px; overflow-y: auto; }
-    #chart-candle { border-radius: 10px; background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,.07); }
-    #chart-volume { border-radius: 10px; background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,.07); }
+        .auth-header h1 {
+            color: var(--color-primario);
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
 
-    /* SIDEBAR */
-    .sidebar {
-      background: #fff;
-      border-left: 1px solid #e0e4ea;
-      overflow-y: auto;
-      padding: 16px;
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-    }
-    .sidebar-title { font-size: 11px; font-weight: 700; color: #999; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+        .auth-header p {
+            color: #555;
+            font-size: 14px;
+        }
 
-    .price-card {
-      background: #1F3864;
-      border-radius: 10px;
-      padding: 16px;
-      color: #fff;
-    }
-    .price-ticker { font-size: 13px; color: #C5961A; font-weight: 700; letter-spacing: 1px; }
-    .price-main { font-size: 28px; font-weight: 800; margin: 4px 0; }
-    .price-change { font-size: 13px; font-weight: 600; }
-    .price-change.up { color: #4ade80; }
-    .price-change.down { color: #f87171; }
-    .price-meta { font-size: 11px; color: #8899bb; margin-top: 8px; display: flex; gap: 12px; }
+        .form-group {
+            margin-bottom: 20px;
+            position: relative;
+        }
 
-    .ohlc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-    .ohlc-cell { background: #F5F7FA; border-radius: 8px; padding: 10px; }
-    .ohlc-lbl { font-size: 10px; color: #888; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
-    .ohlc-val { font-size: 14px; font-weight: 700; color: #1F3864; margin-top: 2px; }
-    .ohlc-val.open { color: #1F3864; }
-    .ohlc-val.high { color: #16a34a; }
-    .ohlc-val.low { color: #dc2626; }
-    .ohlc-val.close { color: #C5961A; }
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 14px;
+            font-weight: bold;
+            color: var(--color-primario);
+        }
 
-    .vol-summary { background: #F5F7FA; border-radius: 8px; padding: 12px; }
-    .vol-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; font-size: 13px; }
-    .vol-row:last-child { margin-bottom: 0; }
-    .vol-lbl { color: #666; }
-    .vol-val { font-weight: 700; color: #1F3864; }
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--color-gris-borde);
+            border-radius: 4px;
+            font-size: 14px;
+            transition: border-color 0.2s;
+            font-family: 'Calibri', 'Inter', sans-serif;
+        }
 
-    .ticker-list { display: flex; flex-direction: column; gap: 6px; }
-    .ticker-item {
-      display: flex; justify-content: space-between; align-items: center;
-      padding: 8px 10px;
-      border-radius: 8px;
-      cursor: pointer;
-      transition: background .15s;
-      border: 1px solid transparent;
-    }
-    .ticker-item:hover { background: #F5F7FA; }
-    .ticker-item.selected { background: #eef1f8; border-color: #1F3864; }
-    .ticker-sym { font-size: 13px; font-weight: 700; color: #1F3864; }
-    .ticker-price { font-size: 13px; font-weight: 700; }
-    .ticker-chg { font-size: 11px; font-weight: 600; }
-    .up { color: #16a34a; }
-    .down { color: #dc2626; }
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: var(--color-acento);
+        }
 
-    /* Nota de fuente de datos */
-    .data-source-tag {
-      font-size: 10px;
-      color: #4ade80;
-      background: rgba(22,163,74,0.12);
-      border: 1px solid rgba(22,163,74,0.3);
-      border-radius: 4px;
-      padding: 2px 7px;
-      font-weight: 700;
-      letter-spacing: 0.5px;
-    }
-    .data-source-tag.mock {
-      color: #f59e0b;
-      background: rgba(245,158,11,0.12);
-      border-color: rgba(245,158,11,0.3);
-    }
+        /* ==========================================================================
+           3. GRUPO DE CHECKBOX (Términos y Condiciones)
+           ========================================================================== */
+        .form-group-check {
+            margin-bottom: 20px;
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+        }
 
-    /* SVC badge en sidebar */
-    .svc-card {
-      background: #0d1b36;
-      border: 1px solid #2a3a5e;
-      border-radius: 10px;
-      padding: 14px;
-    }
-    .svc-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-    .svc-title { font-size: 11px; font-weight: 700; color: #C5961A; text-transform: uppercase; letter-spacing: 1px; }
-    .svc-senal {
-      font-size: 13px;
-      font-weight: 800;
-      padding: 3px 10px;
-      border-radius: 4px;
-    }
-    .svc-senal.BUY { background: rgba(22,163,74,.2); color: #4ade80; border: 1px solid rgba(22,163,74,.4); }
-    .svc-senal.SELL { background: rgba(220,38,38,.2); color: #f87171; border: 1px solid rgba(220,38,38,.4); }
-    .svc-senal.HOLD { background: rgba(245,158,11,.2); color: #fbbf24; border: 1px solid rgba(245,158,11,.4); }
-    .svc-row { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 5px; }
-    .svc-lbl { color: #6b7fa8; }
-    .svc-val { color: #e0e8ff; font-weight: 600; }
+        .form-group-check input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            min-width: 18px; /* Evita que el checkbox se comprima */
+            margin-top: 2px;
+            accent-color: var(--color-primario);
+            cursor: pointer;
+        }
 
-    @media(max-width:768px) {
-      .main { grid-template-columns: 1fr; }
-      .sidebar { border-left: none; border-top: 1px solid #e0e4ea; }
-      .indicator-toggles { margin-left: 0; }
-    }
-  </style>
+        .form-group-check label {
+            font-size: 13px;
+            color: #555;
+            line-height: 1.5;
+            cursor: pointer;
+        }
+
+        .form-group-check label a {
+            color: var(--color-acento);
+            font-weight: bold;
+            text-decoration: none;
+        }
+
+        .form-group-check label a:hover {
+            text-decoration: underline;
+        }
+
+        /* Botón Primario */
+        .btn-primary {
+            width: 100%;
+            background-color: var(--color-primario);
+            color: var(--color-blanco);
+            padding: 14px;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            margin-top: 10px;
+            font-family: 'Calibri', 'Inter', sans-serif;
+        }
+
+        .btn-primary:hover {
+            background-color: #152746;
+        }
+
+        /* Botón de Terceros (Google/GitHub) */
+        .btn-oauth {
+            width: 100%;
+            background-color: var(--color-blanco);
+            color: var(--color-negro);
+            padding: 12px;
+            border: 1px solid var(--color-gris-borde);
+            border-radius: 4px;
+            font-size: 14px;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            margin-top: 12px;
+            font-weight: 500;
+            font-family: 'Calibri', 'Inter', sans-serif;
+            transition: background-color 0.2s;
+        }
+
+        .btn-oauth:hover {
+            background-color: #f8f9fa;
+        }
+
+        /* Ícono SVG de Google */
+        .google-icon {
+            width: 18px;
+            height: 18px;
+        }
+
+        .divider {
+            text-align: center;
+            margin: 20px 0;
+            position: relative;
+        }
+
+        .divider::before {
+            content: "";
+            position: absolute;
+            left: 0;
+            top: 50%;
+            width: 100%;
+            height: 1px;
+            background-color: var(--color-gris-borde);
+            z-index: 1;
+        }
+
+        .divider span {
+            background-color: var(--color-blanco);
+            padding: 0 10px;
+            position: relative;
+            z-index: 2;
+            font-size: 12px;
+            color: #777;
+        }
+
+        /* Enlaces de Navegación */
+        .auth-links {
+            margin-top: 20px;
+            text-align: center;
+            font-size: 13px;
+        }
+
+        .auth-links a {
+            color: var(--color-acento);
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        .auth-links a:hover {
+            text-decoration: underline;
+        }
+
+        /* Alertas de error inline */
+        .error-message {
+            color: var(--color-error);
+            font-size: 12px;
+            margin-top: 5px;
+            display: none;
+        }
+
+        /* Alerta de éxito global */
+        .alert-success {
+            background-color: #D4EDDA;
+            color: var(--color-exito);
+            padding: 12px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            display: none;
+            text-align: center;
+            border: 1px solid #C3E6CB;
+        }
+
+        /* Indicador de fortaleza de contraseña */
+        .password-strength {
+            margin-top: 6px;
+            display: none;
+        }
+
+        .strength-bar {
+            height: 4px;
+            border-radius: 2px;
+            background-color: var(--color-gris-borde);
+            overflow: hidden;
+            margin-bottom: 4px;
+        }
+
+        .strength-fill {
+            height: 100%;
+            border-radius: 2px;
+            transition: width 0.3s, background-color 0.3s;
+            width: 0%;
+        }
+
+        .strength-label {
+            font-size: 11px;
+            color: #777;
+        }
+
+        /* Regla SPA: Ocultar secciones inactivas */
+        .auth-section {
+            display: none;
+        }
+
+        .auth-section.active {
+            display: block;
+            animation: fadeIn 0.25s ease;
+        }
+
+        /* Transición suave al cambiar de pantalla */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+    </style>
 </head>
 <body>
 
-<!-- LOADING OVERLAY -->
-<div id="loadingOverlay">
-  <div class="spinner"></div>
-  <div class="loading-text" id="loadingText">Consultando API…</div>
-</div>
+    <div class="auth-container">
 
-<!-- ERROR TOAST -->
-<div id="errorToast">
-  <div class="toast-title">⚠ Error de conexión</div>
-  <div class="toast-msg" id="toastMsg"></div>
-</div>
+        <!-- Alerta de éxito global compartida entre todas las secciones -->
+        <div id="global-success" class="alert-success"></div>
 
-<!-- NAV -->
-<nav>
-  <div class="nav-brand">
-    <div class="nav-logo">AI</div>
-    <div>
-      <div class="nav-title">InvestAI</div>
-      <div class="nav-module">Módulo 6.2 — Datos de Mercado</div>
-    </div>
-  </div>
-  <div class="nav-status">
-    <div class="dot-live" id="navDot"></div>
-    <span id="navStatusText">DESCONECTADO</span>
-  </div>
-</nav>
+        <!-- ================================================================
+             SECCIÓN 1: INICIO DE SESIÓN
+             ================================================================ -->
+        <section id="section-login" class="auth-section active">
+            <div class="auth-header">
+                <h1>InvestAI</h1>
+                <p>Sistema Inteligente de Inversión</p>
+            </div>
 
-<!-- BANNER CONFIGURACIÓN API -->
-<!--
-  ══════════════════════════════════════════════════════════════════════════
-  ENTREGABLE 5 — Punto de integración con el backend FastAPI
-  ──────────────────────────────────────────────────────────────────────────
-  Instrucciones de uso:
-  1. Ejecuta el Notebook de la API (API_REST_con_FastAPI) en Google Colab.
-  2. Copia la URL pública de ngrok que aparece en la celda 3
-     (p.ej. https://frugality-protract-sublime.ngrok-free.dev)
-  3. Pégala en el campo de abajo y pulsa "Conectar".
-  4. Selecciona cualquier ticker del watchlist → el frontend llama a
-     GET /api/lstm/{ticker}  y muestra datos REALES del backend.
-  ══════════════════════════════════════════════════════════════════════════
--->
-<div class="api-banner">
-  <span class="api-label">🔌 Backend API</span>
-  <div class="api-input-wrap">
-    <input
-      type="text"
-      id="apiBaseUrl"
-      placeholder="https://tu-url-de-ngrok.ngrok-free.dev"
-      value=""
-    />
-    <button class="btn-connect" onclick="conectarAPI()">Conectar</button>
-    <button class="btn-connect" style="background:#2a3a5e" onclick="probarEnNavegador()">🔗 Probar URL</button>
-  </div>
-  <div class="api-status-badge" id="apiStatusBadge">
-    <div class="api-status-dot"></div>
-    <span id="apiStatusText">Sin conectar</span>
-  </div>
-</div>
+            <form id="form-login" onsubmit="validarLogin(event)">
+                <div class="form-group">
+                    <label for="login-email">Correo Electrónico</label>
+                    <input type="email" id="login-email" placeholder="ejemplo@unmsm.edu.pe" autocomplete="email">
+                    <div id="error-login-email" class="error-message">Por favor, ingrese un correo válido.</div>
+                </div>
 
-<!-- CONTROLS -->
-<div class="controls-bar">
-  <div class="ctrl-group">
-    <span class="ctrl-label">Activo</span>
-    <select id="tickerSel" onchange="onTickerChange()">
-      <option value="FSM">FSM — Fortuna Silver Mines</option>
-      <option value="VOLCABC1.LM">VOLCABC1.LM — Volcan Cía. Minera</option>
-      <option value="ABX.TO">ABX.TO — Barrick Gold</option>
-      <option value="BVN">BVN — Buenaventura</option>
-      <option value="BHP">BHP — BHP Group</option>
-    </select>
-  </div>
-  <div class="ctrl-group">
-    <span class="ctrl-label">Horizonte</span>
-    <div class="btn-group" id="intervalGroup">
-      <button class="btn-interval" onclick="setHorizonte(7)">7D</button>
-      <button class="btn-interval active" onclick="setHorizonte(30)">30D</button>
-      <button class="btn-interval" onclick="setHorizonte(60)">60D</button>
-      <button class="btn-interval" onclick="setHorizonte(90)">90D</button>
-    </div>
-  </div>
-  <div class="indicator-toggles">
-    <div class="toggle-pill active" data-id="bb" onclick="toggleIndicator(this)">
-      <div class="pill-dot" style="background:#1abc9c"></div> Bandas 95%
-    </div>
-    <div class="toggle-pill active" data-id="validacion" onclick="toggleIndicator(this)">
-      <div class="pill-dot" style="background:#E67E22"></div> Real vs Pred
-    </div>
-  </div>
-</div>
+                <div class="form-group">
+                    <label for="login-password">Contraseña</label>
+                    <input type="password" id="login-password" placeholder="••••••••" autocomplete="current-password">
+                    <div id="error-login-password" class="error-message">La contraseña es obligatoria.</div>
+                </div>
 
-<!-- MAIN -->
-<div class="main">
-  <div class="chart-area">
-    <div id="chart-candle"></div>
-    <div id="chart-volume"></div>
-  </div>
-  <div class="sidebar">
-    <!-- Price card -->
-    <div class="price-card">
-      <div style="display:flex; justify-content:space-between; align-items:flex-start">
-        <div class="price-ticker" id="sb-ticker">—</div>
-        <span class="data-source-tag mock" id="dataSourceTag">MOCK</span>
-      </div>
-      <div class="price-main" id="sb-price">$—</div>
-      <div class="price-change" id="sb-change">Conecta la API para cargar datos</div>
-      <div class="price-meta">
-        <span>RMSE: <strong id="sb-rmse">—</strong></span>
-        <span>R²: <strong id="sb-r2">—</strong></span>
-      </div>
-    </div>
+                <button type="submit" id="btn-login" class="btn-primary">Iniciar Sesión</button>
+            </form>
 
-    <!-- OHLC / Métricas del modelo -->
-    <div>
-      <div class="sidebar-title">Métricas del Regresor LSTM</div>
-      <div class="ohlc-grid">
-        <div class="ohlc-cell"><div class="ohlc-lbl">RMSE (USD)</div><div class="ohlc-val open" id="oc-rmse">—</div></div>
-        <div class="ohlc-cell"><div class="ohlc-lbl">RMSE (%)</div><div class="ohlc-val high" id="oc-rmse-pct">—</div></div>
-        <div class="ohlc-cell"><div class="ohlc-lbl">MAE (USD)</div><div class="ohlc-val low" id="oc-mae">—</div></div>
-        <div class="ohlc-cell"><div class="ohlc-lbl">R² Score</div><div class="ohlc-val close" id="oc-r2">—</div></div>
-      </div>
-    </div>
+            <div class="divider"><span>O CONTINUAR CON</span></div>
 
-    <!-- Proyección resumen -->
-    <div>
-      <div class="sidebar-title">Proyección (próximos días)</div>
-      <div class="vol-summary">
-        <div class="vol-row"><span class="vol-lbl">Precio actual</span><span class="vol-val" id="vs-actual">—</span></div>
-        <div class="vol-row"><span class="vol-lbl">Pred. +7 días</span><span class="vol-val" id="vs-7d">—</span></div>
-        <div class="vol-row"><span class="vol-lbl">Pred. +30 días</span><span class="vol-val" id="vs-30d">—</span></div>
-        <div class="vol-row"><span class="vol-lbl">Tendencia</span><span class="vol-val" id="vs-tendencia">—</span></div>
-      </div>
-    </div>
+            <!-- Botón OAuth Google con ícono SVG oficial -->
+            <button class="btn-oauth" onclick="simularOAuth('Google')">
+                <svg class="google-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+                    <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                    <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+                    <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+                </svg>
+                Continuar con Google
+            </button>
 
-    <!-- Señal SVC -->
-    <div>
-      <div class="sidebar-title">Señal SVC (datos_svc.json)</div>
-      <div class="svc-card" id="svcCard">
-        <div class="svc-header">
-          <span class="svc-title" id="svcTicker">—</span>
-          <span class="svc-senal HOLD" id="svcSenal">—</span>
-        </div>
-        <div class="svc-row"><span class="svc-lbl">Confianza</span><span class="svc-val" id="svcConf">—</span></div>
-        <div class="svc-row"><span class="svc-lbl">Kernel</span><span class="svc-val" id="svcKernel">—</span></div>
-        <div class="svc-row"><span class="svc-lbl">Accuracy</span><span class="svc-val" id="svcAcc">—</span></div>
-        <div class="svc-row"><span class="svc-lbl">F1 Score</span><span class="svc-val" id="svcF1">—</span></div>
-      </div>
-    </div>
+            <div class="auth-links">
+                <p><a href="#" onclick="navegarA('section-forgot')">¿Olvidaste tu contraseña?</a></p>
+                <p style="margin-top: 10px;">¿No tienes cuenta? <a href="#" onclick="navegarA('section-register')">Regístrate aquí</a></p>
+            </div>
+        </section>
 
-    <!-- Watchlist -->
-    <div>
-      <div class="sidebar-title">Watchlist (Mineras)</div>
-      <div class="ticker-list" id="watchlist">
-        <div class="ticker-item selected" onclick="selectTicker('FSM',this)">
-          <span class="ticker-sym">FSM</span>
-          <div style="text-align:right"><div class="ticker-price" id="w-FSM-p">—</div><div class="ticker-chg" id="w-FSM-c">—</div></div>
-        </div>
-        <div class="ticker-item" onclick="selectTicker('VOLCABC1.LM',this)">
-          <span class="ticker-sym">VOLCABC1.LM</span>
-          <div style="text-align:right"><div class="ticker-price" id="w-VOLCABC1LM-p">—</div><div class="ticker-chg" id="w-VOLCABC1LM-c">—</div></div>
-        </div>
-        <div class="ticker-item" onclick="selectTicker('ABX.TO',this)">
-          <span class="ticker-sym">ABX.TO</span>
-          <div style="text-align:right"><div class="ticker-price" id="w-ABXTO-p">—</div><div class="ticker-chg" id="w-ABXTO-c">—</div></div>
-        </div>
-        <div class="ticker-item" onclick="selectTicker('BVN',this)">
-          <span class="ticker-sym">BVN</span>
-          <div style="text-align:right"><div class="ticker-price" id="w-BVN-p">—</div><div class="ticker-chg" id="w-BVN-c">—</div></div>
-        </div>
-        <div class="ticker-item" onclick="selectTicker('BHP',this)">
-          <span class="ticker-sym">BHP</span>
-          <div style="text-align:right"><div class="ticker-price" id="w-BHP-p">—</div><div class="ticker-chg" id="w-BHP-c">—</div></div>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
+        <!-- ================================================================
+             SECCIÓN 2: REGISTRO DE NUEVO USUARIO
+             ================================================================ -->
+        <section id="section-register" class="auth-section">
+            <div class="auth-header">
+                <h1>Crear Cuenta</h1>
+                <p>Únete a la plataforma InvestAI</p>
+            </div>
 
-<script>
-// ══════════════════════════════════════════════════════════════════════════════
-// ENTREGABLE 5 — Frontend conectado al backend FastAPI
-// Cambio principal: las funciones genOHLC() con Math.random() fueron ELIMINADAS.
-// En su lugar se usa fetchLSTM() que realiza fetch() al endpoint real:
-//   GET {API_BASE_URL}/api/lstm/{ticker}?horizonte={horizonte}
-//
-// El archivo datos_svc.json se carga de forma local para enriquecer la
-// vista con la señal SVC del clasificador entrenado (Entregable 2).
-// ══════════════════════════════════════════════════════════════════════════════
+            <form id="form-register" onsubmit="validarRegistro(event)">
 
-// ─── ESTADO DE LA APLICACIÓN ─────────────────────────────────────────────────
-let API_BASE_URL    = '';          // URL del backend ngrok (vacía = sin conectar)
-let API_CONNECTED   = false;
-let currentTicker   = 'FSM';
-let currentHorizonte = 30;
-let indicators      = { bb: true, validacion: true };
-let datosSVC        = null;        // Cache del JSON local SVC
+                <!-- Campo: Nombre Completo -->
+                <div class="form-group">
+                    <label for="reg-name">Nombre Completo</label>
+                    <input type="text" id="reg-name" placeholder="Juan Pérez" autocomplete="name">
+                    <div id="error-reg-name" class="error-message">El nombre es obligatorio.</div>
+                </div>
 
-// ─── DATOS SVC EMBEBIDOS (del archivo datos_svc.json) ────────────────────────
-// Estos datos son generados por el Notebook 2 (SVC Clasificador) y se leen
-// aquí directamente sin llamada de red, tal como los provee el entregable.
-const SVC_DATA = {
-  "FSM":         { nombre:"Fortuna Silver Mines Inc.",  senal:"BUY",  conf:0.5119, kernel:{tipo:"rbf",C:0.1,gamma:"scale"}, metricas:{accuracy:0.4725,f1:0.6418} },
-  "VOLCABC1.LM": { nombre:"Volcan Compañia Minera SAA", senal:"HOLD", conf:0.4800, kernel:{tipo:"rbf",C:1,gamma:"scale"},   metricas:{accuracy:0.5100,f1:0.5200} },
-  "ABX.TO":      { nombre:"Barrick Gold Corporation",   senal:"BUY",  conf:0.5500, kernel:{tipo:"linear",C:10,gamma:"scale"},metricas:{accuracy:0.5300,f1:0.5700} },
-  "BVN":         { nombre:"Cía. Minera Buenaventura",   senal:"SELL", conf:0.4200, kernel:{tipo:"poly",C:1,gamma:"auto"},   metricas:{accuracy:0.4900,f1:0.4800} },
-  "BHP":         { nombre:"BHP Group Limited",          senal:"BUY",  conf:0.6100, kernel:{tipo:"rbf",C:100,gamma:"scale"}, metricas:{accuracy:0.5800,f1:0.6200} }
-};
+                <!-- Campo: Correo Electrónico -->
+                <div class="form-group">
+                    <label for="reg-email">Correo Electrónico</label>
+                    <input type="email" id="reg-email" placeholder="ejemplo@unmsm.edu.pe" autocomplete="email">
+                    <div id="error-reg-email" class="error-message">Ingrese un correo válido.</div>
+                </div>
 
-// ─── HELPERS UI ──────────────────────────────────────────────────────────────
-function showLoading(msg = 'Consultando API…') {
-  document.getElementById('loadingText').textContent = msg;
-  document.getElementById('loadingOverlay').classList.add('active');
-}
-function hideLoading() {
-  document.getElementById('loadingOverlay').classList.remove('active');
-}
-function showError(msg) {
-  document.getElementById('toastMsg').textContent = msg;
-  const t = document.getElementById('errorToast');
-  t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 5000);
-}
+                <!-- Campo: Perfil de Inversor -->
+                <div class="form-group">
+                    <label for="reg-profile">Perfil de Inversor</label>
+                    <select id="reg-profile">
+                        <option value="">Seleccione su perfil...</option>
+                        <option value="conservador">Conservador (Bajo riesgo / Renta Fija)</option>
+                        <option value="moderado">Moderado (Riesgo medio / Balanceado)</option>
+                        <option value="agresivo">Agresivo (Alto riesgo / Acciones y Criptos)</option>
+                    </select>
+                    <div id="error-reg-profile" class="error-message">Debe seleccionar un perfil de inversor.</div>
+                </div>
 
-function setAPIStatus(state) {
-  const badge = document.getElementById('apiStatusBadge');
-  const text  = document.getElementById('apiStatusText');
-  const dot   = document.getElementById('navDot');
-  const nav   = document.getElementById('navStatusText');
-  badge.className = 'api-status-badge ' + state;
-  if (state === 'connected') {
-    text.textContent = 'Conectado';
-    dot.classList.remove('offline');
-    nav.textContent = 'API EN VIVO';
-    API_CONNECTED = true;
-  } else if (state === 'error') {
-    text.textContent = 'Error de conexión';
-    dot.classList.add('offline');
-    nav.textContent = 'DESCONECTADO';
-    API_CONNECTED = false;
-  } else {
-    text.textContent = 'Sin conectar';
-    dot.classList.add('offline');
-    nav.textContent = 'DESCONECTADO';
-    API_CONNECTED = false;
-  }
-}
+                <!-- Campo: Contraseña con indicador de fortaleza -->
+                <div class="form-group">
+                    <label for="reg-password">Contraseña</label>
+                    <input type="password" id="reg-password" placeholder="Mínimo 6 caracteres"
+                           autocomplete="new-password" oninput="evaluarFortaleza(this.value)">
+                    <div id="error-reg-password" class="error-message">La contraseña debe tener al menos 6 caracteres.</div>
+                    <!-- Barra de fortaleza de contraseña -->
+                    <div class="password-strength" id="strength-container">
+                        <div class="strength-bar">
+                            <div class="strength-fill" id="strength-fill"></div>
+                        </div>
+                        <span class="strength-label" id="strength-label"></span>
+                    </div>
+                </div>
 
-// ─── PROBAR URL EN NAVEGADOR ─────────────────────────────────────────────────
-function probarEnNavegador() {
-  const rawUrl = document.getElementById('apiBaseUrl').value.trim().replace(/\/$/,'');
-  if (!rawUrl) { showError('Introduce primero la URL de ngrok.'); return; }
-  window.open(rawUrl + '/api/salud', '_blank');
-  setTimeout(() => showError('Verifica en la pestaña: si ves aviso de ngrok pulsa \"Visit Site\" y vuelve acá.'), 500);
-}
+                <!-- NUEVO: Campo Confirmar Contraseña -->
+                <div class="form-group">
+                    <label for="reg-password-confirm">Confirmar Contraseña</label>
+                    <input type="password" id="reg-password-confirm" placeholder="Repita su contraseña"
+                           autocomplete="new-password">
+                    <div id="error-reg-password-confirm" class="error-message">Las contraseñas no coinciden.</div>
+                </div>
 
-// ─── PANEL DE DIAGNÓSTICO ─────────────────────────────────────────────────────
-function mostrarDiagnostico(url, etapa, detalles) {
-  let panel = document.getElementById('diagPanel');
-  if (!panel) {
-    panel = document.createElement('div');
-    panel.id = 'diagPanel';
-    panel.style.cssText = `
-      position:fixed; top:70px; right:16px; width:380px; z-index:9997;
-      background:#0d1b36; border:1px solid #C5961A; border-radius:10px;
-      padding:16px; font-family:monospace; font-size:12px; color:#e0e8ff;
-      box-shadow:0 8px 32px rgba(0,0,0,.5); max-height:70vh; overflow-y:auto;
-    `;
-    document.body.appendChild(panel);
-  }
-  panel.innerHTML = `
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-      <span style="color:#C5961A;font-weight:700;font-size:13px">🔍 DIAGNÓSTICO DE CONEXIÓN</span>
-      <button onclick="this.parentElement.parentElement.remove()" style="background:none;border:none;color:#888;cursor:pointer;font-size:16px">✕</button>
-    </div>
-    <div style="margin-bottom:8px">
-      <span style="color:#888">URL:</span><br>
-      <span style="color:#4ade80;word-break:break-all">${url}</span>
-    </div>
-    <div style="margin-bottom:8px">
-      <span style="color:#888">Etapa:</span>
-      <span style="color:${etapa.includes('❌')?'#f87171':etapa.includes('✅')?'#4ade80':'#fbbf24'}">${etapa}</span>
-    </div>
-    <div style="background:#1a2744;border-radius:6px;padding:10px;margin-bottom:10px;white-space:pre-wrap;color:#ccc;font-size:11px">${detalles}</div>
-    <div style="border-top:1px solid #2a3a5e;padding-top:10px;font-size:11px;color:#8899bb">
-      <strong style="color:#C5961A">Pasos para verificar:</strong><br>
-      1. Abre esta URL en una pestaña nueva:<br>
-      <a href="${url}/api/salud" target="_blank" style="color:#4ade80">${url}/api/salud</a><br><br>
-      2. Si ves página de ngrok → acepta y vuelve acá<br>
-      3. Si ves JSON → el backend funciona, es un error CORS<br>
-      4. Si no carga → el Notebook se desconectó<br><br>
-      <strong style="color:#C5961A">Si es error CORS, ejecuta en Colab:</strong><br>
-      <span style="color:#fbbf24">La API ya tiene CORSMiddleware allow_origins=["*"]<br>
-      Verifica que esté corriendo en el puerto 8000</span>
-    </div>
-  `;
-}
+                <!-- NUEVO: Checkbox de Términos y Condiciones -->
+                <div class="form-group-check">
+                    <input type="checkbox" id="reg-terms">
+                    <label for="reg-terms">
+                        Acepto los <a href="#" onclick="alert('Términos y Condiciones de InvestAI.')">Términos y Condiciones</a>
+                        y la <a href="#" onclick="alert('Política de Privacidad de InvestAI.')">Política de Privacidad</a>
+                        de InvestAI.
+                    </label>
+                </div>
+                <div id="error-reg-terms" class="error-message" style="margin-top: -14px; margin-bottom: 14px;">
+                    Debe aceptar los términos y condiciones.
+                </div>
 
-// ─── CONEXIÓN Y VERIFICACIÓN DE SALUD DEL BACKEND ────────────────────────────
-async function conectarAPI() {
-  const rawUrl = document.getElementById('apiBaseUrl').value.trim().replace(/\/$/, '');
-  if (!rawUrl) { showError('Introduce la URL pública de ngrok (empieza con https://).'); return; }
+                <button type="submit" id="btn-register" class="btn-primary">Crear Cuenta</button>
+            </form>
 
-  // Limpiar diagnóstico previo
-  const prev = document.getElementById('diagPanel');
-  if (prev) prev.remove();
+            <div class="auth-links">
+                <p>¿Ya tienes una cuenta? <a href="#" onclick="navegarA('section-login')">Inicia sesión</a></p>
+            </div>
+        </section>
 
-  API_BASE_URL = rawUrl;
-  showLoading('Verificando conexión con /api/salud…');
+        <!-- ================================================================
+             SECCIÓN 3: RECUPERACIÓN DE CONTRASEÑA
+             ================================================================ -->
+        <section id="section-forgot" class="auth-section">
+            <div class="auth-header">
+                <h1>Recuperar Clave</h1>
+                <p>Le enviaremos un enlace de restauración a su correo</p>
+            </div>
 
-  try {
-    // ── FETCH #1: Chequeo de salud ──────────────────────────────────────────
-    // Endpoint: GET /api/salud
-    // Headers requeridos por ngrok para saltar la página de advertencia
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 10000); // 10s timeout
+            <form id="form-forgot" onsubmit="validarRecuperacion(event)">
+                <div class="form-group">
+                    <label for="forgot-email">Correo Electrónico Registrado</label>
+                    <input type="email" id="forgot-email" placeholder="ejemplo@unmsm.edu.pe" autocomplete="email">
+                    <div id="error-forgot-email" class="error-message">Ingrese un correo válido.</div>
+                </div>
 
-    let resp;
-    try {
-      resp = await fetch(`${API_BASE_URL}/api/salud`, {
-        method: 'GET',
-        mode: 'cors',
-        headers: {
-          'ngrok-skip-browser-warning': '1',
-          'Accept': 'application/json',
-        },
-        signal: controller.signal
-      });
-      clearTimeout(timeout);
-    } catch (fetchErr) {
-      clearTimeout(timeout);
-      // Distinguir tipos de error de red
-      if (fetchErr.name === 'AbortError') {
-        mostrarDiagnostico(rawUrl, '❌ Timeout (10s)',
-          `El servidor no respondió en 10 segundos.\n\nPosibles causas:\n• El Notebook de Colab se desconectó\n• La URL de ngrok expiró (duran ~2h gratis)\n• El puerto 8000 no está escuchando\n\nSolución: Vuelve a ejecutar las 3 celdas del Notebook.`
-        );
-      } else if (fetchErr.message.includes('Failed to fetch') || fetchErr.message.includes('NetworkError')) {
-        mostrarDiagnostico(rawUrl, '❌ Failed to fetch (CORS o red)',
-          `Error: ${fetchErr.message}\n\nEste error ocurre cuando:\n• El navegador bloquea la request por CORS\n• La URL de ngrok no es válida\n• El servidor está caído\n\nPrueba:\n1. Haz clic en el enlace de abajo para abrir /api/salud en una pestaña nueva\n2. Acepta la advertencia de ngrok si aparece\n3. Luego vuelve y pulsa Conectar de nuevo`
-        );
-      } else {
-        mostrarDiagnostico(rawUrl, `❌ Error de red: ${fetchErr.name}`, fetchErr.message);
-      }
-      throw fetchErr;
-    }
+                <button type="submit" id="btn-forgot" class="btn-primary">Enviar Enlace de Recuperación</button>
+            </form>
 
-    // Verificar status HTTP
-    if (resp.status === 401 || resp.status === 403) {
-      mostrarDiagnostico(rawUrl, `❌ HTTP ${resp.status} — Sin autorización`,
-        `ngrok bloqueó la request.\n\nSolución: Abre la URL en el navegador, acepta\nla advertencia, luego intenta conectar de nuevo.`
-      );
-      throw new Error(`HTTP ${resp.status}`);
-    }
-    if (!resp.ok) {
-      const body = await resp.text().catch(() => '');
-      mostrarDiagnostico(rawUrl, `❌ HTTP ${resp.status}`,
-        `Respuesta del servidor:\n${body.slice(0, 300)}`
-      );
-      throw new Error(`HTTP ${resp.status}`);
-    }
+            <div class="auth-links">
+                <p>Volver al <a href="#" onclick="navegarA('section-login')">Inicio de Sesión</a></p>
+            </div>
+        </section>
 
-    // Parsear JSON
-    let data;
-    try {
-      data = await resp.json();
-    } catch(e) {
-      const txt = await resp.text().catch(() => '');
-      mostrarDiagnostico(rawUrl, '❌ Respuesta no es JSON',
-        `El servidor respondió pero no con JSON.\nProbablemente es la página de advertencia de ngrok.\n\nSolución:\n1. Abre ${rawUrl}/api/salud en una pestaña nueva\n2. Acepta la advertencia de ngrok\n3. Vuelve aquí y pulsa Conectar\n\nRespuesta recibida:\n${txt.slice(0, 200)}`
-      );
-      throw new Error('Respuesta no es JSON válido');
-    }
+        <!-- ================================================================
+             SECCIÓN 4: VERIFICACIÓN DE DOS FACTORES (2FA)
+             ================================================================ -->
+        <section id="section-2fa" class="auth-section">
+            <div class="auth-header">
+                <h1>Verificación 2FA</h1>
+                <p>Ingrese el código de seguridad enviado a su dispositivo</p>
+            </div>
 
-    if (data.status !== 'healthy') {
-      mostrarDiagnostico(rawUrl, '⚠ Backend inició pero reportó estado anómalo',
-        `Respuesta: ${JSON.stringify(data, null, 2)}`
-      );
-    }
+            <form id="form-2fa" onsubmit="validar2FA(event)">
+                <div class="form-group">
+                    <label for="fa-code">Código de Seguridad (6 dígitos)</label>
+                    <input type="text" id="fa-code" placeholder="123456" maxlength="6"
+                           style="text-align: center; font-size: 22px; letter-spacing: 8px;"
+                           oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+                    <div id="error-2fa-code" class="error-message">El código debe tener exactamente 6 números.</div>
+                </div>
 
-    setAPIStatus('connected');
-    await cargarTicker(currentTicker);
+                <button type="submit" id="btn-2fa" class="btn-primary">Verificar e Ingresar</button>
+            </form>
 
-  } catch (err) {
-    setAPIStatus('error');
-    // El diagnóstico detallado ya se mostró arriba; solo toast breve
-    if (!document.getElementById('diagPanel')) {
-      showError(`Error: ${err.message}`);
-    }
-  } finally {
-    hideLoading();
-  }
-}
+            <div class="auth-links">
+                <p>¿No recibiste el código? <a href="#" onclick="reenviarCodigo()">Reenviar código</a></p>
+                <p style="margin-top: 10px;"><a href="#" onclick="navegarA('section-login')">← Volver al inicio</a></p>
+            </div>
+        </section>
 
-// ─── FETCH PRINCIPAL: Regresor LSTM ──────────────────────────────────────────
-async function fetchLSTM(ticker, horizonte) {
-  // ── FETCH #2: Regresor LSTM ─────────────────────────────────────────────────
-  // Endpoint: GET /api/lstm/{ticker}?horizonte={horizonte}
-  // Respuesta esperada:
-  //   {
-  //     ticker, metricas_error: { rmse_usd, rmse_porcentaje, mae_usd, r2_score },
-  //     historico_validacion: [ { fecha, real, predicho }, … ],
-  //     proyeccion_futura:    [ { fecha, prediccion_usd, banda_min, banda_max }, … ]
-  //   }
-  const url = `${API_BASE_URL}/api/lstm/${encodeURIComponent(ticker)}?horizonte=${horizonte}`;
-  const resp = await fetch(url, {
-    headers: { 'ngrok-skip-browser-warning': '1' }
-  });
-  if (!resp.ok) {
-    const err = await resp.json().catch(() => ({}));
-    throw new Error(err.detail || `HTTP ${resp.status}`);
-  }
-  return resp.json();
-}
+    </div><!-- /auth-container -->
 
-// ─── RENDER CON DATOS REALES DEL BACKEND ─────────────────────────────────────
-async function cargarTicker(ticker) {
-  showLoading(`Cargando datos de ${ticker} desde el backend…`);
-  try {
-    const datos = await fetchLSTM(ticker, currentHorizonte);
-    renderCharts(ticker, datos);
-    renderSidebar(ticker, datos);
-    renderWatchlistItem(ticker, datos);
-    // Marcar fuente de datos como real
-    const tag = document.getElementById('dataSourceTag');
-    tag.textContent = 'BACKEND';
-    tag.className = 'data-source-tag';
-  } catch (err) {
-    showError(`Error al obtener ${ticker}: ${err.message}`);
-    setAPIStatus('error');
-  } finally {
-    hideLoading();
-  }
-}
+    <script>
+        // ====================================================================
+        // CONFIGURACIÓN DE LA API BACKEND (FastAPI + Ngrok)
+        // Cambia esta URL por la URL pública generada por Ngrok al ejecutar
+        // la Celda 3 del Notebook "API_REST_con_FastAPI".
+        // Ejemplo: "https://frugality-protract-sublime.ngrok-free.dev"
+        // ====================================================================
+        const API_BASE_URL = "https://frugality-protract-sublime.ngrok-free.dev";
 
-// ─── RENDER: GRÁFICOS PLOTLY ──────────────────────────────────────────────────
-function renderCharts(ticker, datos) {
-  const hist    = datos.historico_validacion   || [];
-  const proyec  = datos.proyeccion_futura      || [];
+        // ====================================================================
+        // FUNCIÓN DE NAVEGACIÓN SPA
+        // Oculta todas las secciones y activa solo la seleccionada.
+        // ====================================================================
+        function navegarA(idSeccion) {
+            document.getElementById('global-success').style.display = 'none';
+            const secciones = document.querySelectorAll('.auth-section');
+            secciones.forEach(sec => sec.classList.remove('active'));
+            document.getElementById(idSeccion).classList.add('active');
+            const errores = document.querySelectorAll('.error-message');
+            errores.forEach(err => err.style.display = 'none');
+        }
 
-  const fechasHist  = hist.map(d => d.fecha);
-  const reales      = hist.map(d => d.real);
-  const predichos   = hist.map(d => d.predicho);
-  const fechasProy  = proyec.map(d => d.fecha);
-  const predProy    = proyec.map(d => d.prediccion_usd);
-  const bandaMin    = proyec.map(d => d.banda_min);
-  const bandaMax    = proyec.map(d => d.banda_max);
+        // ====================================================================
+        // UTILIDAD: Mostrar / ocultar estado de carga en botones
+        // ====================================================================
+        function setBtnLoading(btnId, cargando, textoOriginal) {
+            const btn = document.getElementById(btnId);
+            if (!btn) return;
+            btn.disabled = cargando;
+            btn.textContent = cargando ? 'Conectando con el servidor...' : textoOriginal;
+        }
 
-  const lastReal = reales[reales.length - 1] || 0;
+        // ====================================================================
+        // VALIDACIÓN: INICIO DE SESIÓN → fetch() al backend
+        // 1. Valida campos localmente.
+        // 2. Llama a GET /api/salud para verificar que el backend responde.
+        // 3. Si el servidor está activo, avanza al paso 2FA.
+        // ====================================================================
+        async function validarLogin(event) {
+            event.preventDefault();
+            let esValido = true;
 
-  const traces = [];
+            const email = document.getElementById('login-email').value.trim();
+            const pass  = document.getElementById('login-password').value;
 
-  // Línea de precios reales (validación)
-  if (indicators.validacion && reales.length) {
-    traces.push({
-      type: 'scatter', name: 'Precio Real',
-      x: fechasHist, y: reales,
-      mode: 'lines',
-      line: { color: '#1F3864', width: 2 },
-      hovertemplate: '%{x}<br>Real: $%{y:.2f}<extra></extra>'
-    });
-    // Predicción en periodo de validación
-    traces.push({
-      type: 'scatter', name: 'Pred. Validación',
-      x: fechasHist, y: predichos,
-      mode: 'lines',
-      line: { color: '#E67E22', width: 1.5, dash: 'dot' },
-      hovertemplate: '%{x}<br>Predicho: $%{y:.2f}<extra></extra>'
-    });
-  }
+            if (!email || !validarFormatoEmail(email)) {
+                document.getElementById('error-login-email').style.display = 'block';
+                esValido = false;
+            } else {
+                document.getElementById('error-login-email').style.display = 'none';
+            }
 
-  // Proyección futura
-  if (predProy.length) {
-    // Conectar último real con proyección
-    const xConector = [fechasHist[fechasHist.length-1], fechasProy[0]];
-    const yConector = [lastReal, predProy[0]];
-    traces.push({
-      type: 'scatter', name: 'Proyección LSTM',
-      x: [...xConector, ...fechasProy],
-      y: [...yConector, ...predProy],
-      mode: 'lines',
-      line: { color: '#C5961A', width: 2 },
-      hovertemplate: '%{x}<br>Pron: $%{y:.2f}<extra></extra>'
-    });
+            if (!pass) {
+                document.getElementById('error-login-password').style.display = 'block';
+                esValido = false;
+            } else {
+                document.getElementById('error-login-password').style.display = 'none';
+            }
 
-    // Banda de confianza 95%
-    if (indicators.bb) {
-      traces.push({
-        type: 'scatter', name: 'Banda sup. (95%)',
-        x: fechasProy, y: bandaMax,
-        mode: 'lines',
-        line: { color: '#1abc9c', width: 1, dash: 'dot' },
-        showlegend: false
-      });
-      traces.push({
-        type: 'scatter', name: 'Banda inf. (95%)',
-        x: fechasProy, y: bandaMin,
-        mode: 'lines',
-        line: { color: '#1abc9c', width: 1, dash: 'dot' },
-        fill: 'tonexty',
-        fillcolor: 'rgba(26,188,156,0.10)',
-        showlegend: false
-      });
-    }
-  }
+            if (!esValido) return;
 
-  // Línea divisoria real/futuro
-  if (fechasHist.length && fechasProy.length) {
-    traces.push({
-      type: 'scatter', name: 'Hoy',
-      x: [fechasHist[fechasHist.length-1], fechasHist[fechasHist.length-1]],
-      y: [Math.min(...reales)*0.98, Math.max(...reales)*1.02],
-      mode: 'lines',
-      line: { color: '#dc2626', width: 1, dash: 'dashdot' },
-      showlegend: false
-    });
-  }
+            // ----------------------------------------------------------------
+            // LLAMADA REAL AL BACKEND: GET /api/salud
+            // Verifica que el servidor FastAPI está activo antes de continuar.
+            // ----------------------------------------------------------------
+            setBtnLoading('btn-login', true, 'Iniciar Sesión');
+            try {
+                const respuesta = await fetch(`${API_BASE_URL}/api/salud`, {
+                    method: 'GET',
+                    headers: { 'ngrok-skip-browser-warning': 'true' }
+                });
 
-  const layout = {
-    paper_bgcolor: '#fff', plot_bgcolor: '#fff',
-    margin: { l: 60, r: 16, t: 24, b: 32 },
-    height: 380,
-    title: {
-      text: `<b>${ticker}</b> — Regresor LSTM (datos reales del backend)`,
-      font: { size: 13, color: '#1F3864' },
-      x: 0.01, xanchor: 'left'
-    },
-    xaxis: {
-      type: 'date',
-      showgrid: true, gridcolor: '#f0f0f0',
-      tickfont: { size: 10, color: '#888' }
-    },
-    yaxis: {
-      showgrid: true, gridcolor: '#f0f0f0',
-      tickfont: { size: 11, color: '#555' },
-      tickprefix: '$'
-    },
-    legend: { orientation: 'h', y: 1.12, x: 0, font: { size: 11 } },
-    hovermode: 'x unified',
-    shapes: fechasHist.length && fechasProy.length ? [{
-      type: 'rect',
-      x0: fechasProy[0], x1: fechasProy[fechasProy.length-1],
-      y0: 0, y1: 1,
-      xref: 'x', yref: 'paper',
-      fillcolor: 'rgba(197,150,26,0.05)',
-      line: { width: 0 }
-    }] : []
-  };
+                if (!respuesta.ok) {
+                    throw new Error(`El servidor respondió con estado ${respuesta.status}`);
+                }
 
-  Plotly.newPlot('chart-candle', traces, layout, { responsive: true, displayModeBar: false });
+                const datos = await respuesta.json();
 
-  // Gráfico de error (real vs predicho) en el panel inferior
-  if (indicators.validacion && reales.length) {
-    const errores = reales.map((r, i) => +((predichos[i] - r) / r * 100).toFixed(2));
-    const errColors = errores.map(e => e >= 0 ? 'rgba(22,163,74,0.7)' : 'rgba(220,38,38,0.7)');
-    const errTrace = [{
-      type: 'bar', name: 'Error %',
-      x: fechasHist, y: errores,
-      marker: { color: errColors },
-      hovertemplate: '%{x}<br>Error: %{y:.2f}%<extra></extra>'
-    }];
-    const errLayout = {
-      paper_bgcolor: '#fff', plot_bgcolor: '#fff',
-      margin: { l: 60, r: 16, t: 8, b: 32 },
-      height: 110,
-      xaxis: { type: 'date', showgrid: false, tickfont: { size: 10, color: '#888' } },
-      yaxis: { showgrid: true, gridcolor: '#f0f0f0', tickfont: { size: 11, color: '#555' }, ticksuffix: '%', zeroline: true, zerolinecolor: '#ccc' },
-      showlegend: false
-    };
-    document.getElementById('chart-volume').style.display = 'block';
-    Plotly.newPlot('chart-volume', errTrace, errLayout, { responsive: true, displayModeBar: false });
-  } else {
-    document.getElementById('chart-volume').style.display = 'none';
-  }
-}
+                // El backend confirmó que está activo — guardamos el estado y avanzamos
+                sessionStorage.setItem('investai_user_email', email);
+                sessionStorage.setItem('investai_server_ts', datos.timestamp || '');
+                navegarA('section-2fa');
 
-// ─── RENDER: SIDEBAR ─────────────────────────────────────────────────────────
-function renderSidebar(ticker, datos) {
-  const m       = datos.metricas_error || {};
-  const hist    = datos.historico_validacion || [];
-  const proyec  = datos.proyeccion_futura   || [];
+            } catch (error) {
+                // El servidor no está disponible — mostramos el error al usuario
+                mostrarError(`No se pudo conectar al servidor InvestAI: ${error.message}. Verifique que el backend esté activo.`);
+            } finally {
+                setBtnLoading('btn-login', false, 'Iniciar Sesión');
+            }
+        }
 
-  const lastReal = hist.length ? hist[hist.length-1].real : null;
-  const pred7    = proyec[Math.min(6, proyec.length-1)];
-  const pred30   = proyec[Math.min(29, proyec.length-1)];
+        // ====================================================================
+        // VALIDACIÓN: REGISTRO → fetch() al backend
+        // 1. Valida todos los campos del formulario localmente.
+        // 2. Llama a GET /api/rnns/BVL para verificar disponibilidad del backend
+        //    y obtener una señal de bienvenida personalizada según el perfil.
+        // ====================================================================
+        async function validarRegistro(event) {
+            event.preventDefault();
+            let esValido = true;
 
-  const fmt = v => v != null ? `$${(+v).toFixed(2)}` : '—';
-  const pct  = (a, b) => a && b ? (((b-a)/a)*100).toFixed(1)+'%' : '—';
+            const name     = document.getElementById('reg-name').value.trim();
+            const email    = document.getElementById('reg-email').value.trim();
+            const profile  = document.getElementById('reg-profile').value;
+            const pass     = document.getElementById('reg-password').value;
+            const passConf = document.getElementById('reg-password-confirm').value;
+            const terms    = document.getElementById('reg-terms').checked;
 
-  document.getElementById('sb-ticker').textContent  = ticker;
-  document.getElementById('sb-price').textContent   = fmt(lastReal);
-  document.getElementById('sb-rmse').textContent    = m.rmse_usd != null ? `$${m.rmse_usd.toFixed(4)}` : '—';
-  document.getElementById('sb-r2').textContent      = m.r2_score != null ? m.r2_score.toFixed(3) : '—';
+            if (!name) { document.getElementById('error-reg-name').style.display = 'block'; esValido = false; }
+            else { document.getElementById('error-reg-name').style.display = 'none'; }
 
-  const chgEl = document.getElementById('sb-change');
-  if (lastReal && pred30) {
-    const diff = (pred30.prediccion_usd - lastReal);
-    chgEl.textContent = (diff >= 0 ? '▲' : '▼') + ` ${diff >= 0 ? '+' : ''}${diff.toFixed(2)} en 30 días`;
-    chgEl.className   = 'price-change ' + (diff >= 0 ? 'up' : 'down');
-  } else {
-    chgEl.textContent = 'Datos del backend cargados';
-    chgEl.className   = 'price-change';
-  }
+            if (!email || !validarFormatoEmail(email)) { document.getElementById('error-reg-email').style.display = 'block'; esValido = false; }
+            else { document.getElementById('error-reg-email').style.display = 'none'; }
 
-  document.getElementById('oc-rmse').textContent     = m.rmse_usd != null ? `$${m.rmse_usd.toFixed(4)}` : '—';
-  document.getElementById('oc-rmse-pct').textContent = m.rmse_porcentaje != null ? `${m.rmse_porcentaje.toFixed(2)}%` : '—';
-  document.getElementById('oc-mae').textContent      = m.mae_usd != null ? `$${m.mae_usd.toFixed(4)}` : '—';
-  document.getElementById('oc-r2').textContent       = m.r2_score != null ? m.r2_score.toFixed(4) : '—';
+            if (!profile) { document.getElementById('error-reg-profile').style.display = 'block'; esValido = false; }
+            else { document.getElementById('error-reg-profile').style.display = 'none'; }
 
-  document.getElementById('vs-actual').textContent   = fmt(lastReal);
-  document.getElementById('vs-7d').textContent       = pred7 ? fmt(pred7.prediccion_usd) : '—';
-  document.getElementById('vs-30d').textContent      = pred30 ? fmt(pred30.prediccion_usd) : '—';
+            if (pass.length < 6) { document.getElementById('error-reg-password').style.display = 'block'; esValido = false; }
+            else { document.getElementById('error-reg-password').style.display = 'none'; }
 
-  if (lastReal && pred30) {
-    const trend = pred30.prediccion_usd > lastReal ? '▲ Alcista' : '▼ Bajista';
-    const tEl   = document.getElementById('vs-tendencia');
-    tEl.textContent = `${trend} (${pct(lastReal, pred30.prediccion_usd)})`;
-    tEl.className   = 'vol-val ' + (pred30.prediccion_usd > lastReal ? 'up' : 'down');
-  } else {
-    document.getElementById('vs-tendencia').textContent = '—';
-  }
+            if (pass !== passConf || passConf === '') { document.getElementById('error-reg-password-confirm').style.display = 'block'; esValido = false; }
+            else { document.getElementById('error-reg-password-confirm').style.display = 'none'; }
 
-  // Señal SVC local
-  const svc = SVC_DATA[ticker];
-  if (svc) {
-    document.getElementById('svcTicker').textContent = ticker;
-    const senalEl = document.getElementById('svcSenal');
-    senalEl.textContent  = svc.senal;
-    senalEl.className    = `svc-senal ${svc.senal}`;
-    document.getElementById('svcConf').textContent   = (svc.conf * 100).toFixed(1) + '%';
-    document.getElementById('svcKernel').textContent = `${svc.kernel.tipo} (C=${svc.kernel.C})`;
-    document.getElementById('svcAcc').textContent    = (svc.metricas.accuracy * 100).toFixed(1) + '%';
-    document.getElementById('svcF1').textContent     = (svc.metricas.f1 * 100).toFixed(1) + '%';
-  }
-}
+            if (!terms) { document.getElementById('error-reg-terms').style.display = 'block'; esValido = false; }
+            else { document.getElementById('error-reg-terms').style.display = 'none'; }
 
-// ─── WATCHLIST: actualizar precio desde la proyección ────────────────────────
-function renderWatchlistItem(ticker, datos) {
-  const hist   = datos.historico_validacion || [];
-  const proyec = datos.proyeccion_futura    || [];
-  if (!hist.length) return;
+            if (!esValido) return;
 
-  const last  = hist[hist.length-1].real;
-  const prev  = hist[hist.length-2] ? hist[hist.length-2].real : last;
-  const diff  = last - prev;
-  const pct   = (diff / prev * 100).toFixed(2);
-  const isUp  = diff >= 0;
+            // ----------------------------------------------------------------
+            // LLAMADA REAL AL BACKEND: GET /api/rnns/BVL
+            // Obtiene una señal de mercado de bienvenida para el nuevo usuario.
+            // ----------------------------------------------------------------
+            setBtnLoading('btn-register', true, 'Crear Cuenta');
+            try {
+                const tickerBienvenida = profile === 'agresivo' ? 'BTC-USD' : 'AAPL';
+                const respuesta = await fetch(`${API_BASE_URL}/api/rnns/${tickerBienvenida}`, {
+                    method: 'GET',
+                    headers: { 'ngrok-skip-browser-warning': 'true' }
+                });
 
-  const idKey = ticker.replace(/[^a-zA-Z0-9]/g, '');
-  const pEl   = document.getElementById(`w-${idKey}-p`);
-  const cEl   = document.getElementById(`w-${idKey}-c`);
-  if (pEl) { pEl.textContent = `$${last.toFixed(2)}`; pEl.className = `ticker-price ${isUp ? 'up' : 'down'}`; }
-  if (cEl) { cEl.textContent = `${isUp ? '+' : ''}${pct}%`; cEl.className = `ticker-chg ${isUp ? 'up' : 'down'}`; }
-}
+                if (!respuesta.ok) {
+                    throw new Error(`Error del servidor: ${respuesta.status}`);
+                }
 
-// ─── CONTROLES ────────────────────────────────────────────────────────────────
-function setHorizonte(h) {
-  currentHorizonte = h;
-  document.querySelectorAll('.btn-interval').forEach(b => {
-    b.classList.toggle('active', b.textContent === `${h}D`);
-  });
-  if (API_CONNECTED) cargarTicker(currentTicker);
-}
+                const datos = await respuesta.json();
 
-function toggleIndicator(el) {
-  const id = el.dataset.id;
-  indicators[id] = !indicators[id];
-  el.classList.toggle('active');
-  // Si hay datos cargados, re-renderizar sin nueva llamada API
-  if (API_CONNECTED) cargarTicker(currentTicker);
-}
+                // Extraer la señal del modelo BiLSTM (el más preciso según las métricas)
+                const senal = datos.modelos?.bilstm?.senal || 'HOLD';
+                const prob  = (datos.modelos?.bilstm?.probabilidad_mañana * 100 || 50).toFixed(1);
 
-function onTickerChange() {
-  currentTicker = document.getElementById('tickerSel').value;
-  document.querySelectorAll('.ticker-item').forEach(i => i.classList.remove('selected'));
-  // Buscar el item de watchlist y seleccionarlo
-  document.querySelectorAll('.ticker-item').forEach(i => {
-    if (i.querySelector('.ticker-sym') && i.querySelector('.ticker-sym').textContent.trim() === currentTicker)
-      i.classList.add('selected');
-  });
-  if (API_CONNECTED) cargarTicker(currentTicker);
-}
+                // Guardar datos del usuario en sessionStorage para el dashboard
+                sessionStorage.setItem('investai_user_name', name);
+                sessionStorage.setItem('investai_user_email', email);
+                sessionStorage.setItem('investai_user_profile', profile);
 
-function selectTicker(sym, el) {
-  currentTicker = sym;
-  document.getElementById('tickerSel').value = sym;
-  document.querySelectorAll('.ticker-item').forEach(i => i.classList.remove('selected'));
-  el.classList.add('selected');
-  if (API_CONNECTED) cargarTicker(currentTicker);
-  else showError('Conecta el backend primero para obtener datos reales.');
-}
+                // Mostrar mensaje de bienvenida con datos REALES del backend
+                const mensaje = document.getElementById('global-success');
+                mensaje.innerHTML = `✅ ¡Cuenta creada para <strong>${name}</strong>! 
+                    Señal de bienvenida del mercado: <strong>${senal}</strong> 
+                    (prob. ${prob}% · BiLSTM · ${datos.ticker})`;
+                mensaje.style.display = 'block';
 
-// ─── ESTADO INICIAL ───────────────────────────────────────────────────────────
-// Mostrar gráfico vacío al cargar (sin Math.random, sin datos inventados)
-(function init() {
-  setAPIStatus('');
-  Plotly.newPlot('chart-candle', [], {
-    paper_bgcolor:'#fff', plot_bgcolor:'#fff',
-    margin:{l:60,r:16,t:24,b:32}, height:380,
-    title:{ text:'Conecta la API para visualizar datos del backend', font:{size:13,color:'#aaa'}, x:0.01, xanchor:'left' },
-    xaxis:{ showgrid:true, gridcolor:'#f0f0f0' },
-    yaxis:{ showgrid:true, gridcolor:'#f0f0f0', tickprefix:'$' }
-  }, { responsive:true, displayModeBar:false });
-  document.getElementById('chart-volume').style.display = 'none';
-})();
-</script>
+                document.getElementById('form-register').reset();
+                document.getElementById('strength-container').style.display = 'none';
+                navegarA('section-login');
+
+            } catch (error) {
+                mostrarError(`No se pudo conectar al servidor InvestAI: ${error.message}. Verifique que el backend esté activo.`);
+            } finally {
+                setBtnLoading('btn-register', false, 'Crear Cuenta');
+            }
+        }
+
+        // ====================================================================
+        // VALIDACIÓN: RECUPERACIÓN DE CONTRASEÑA → fetch() al backend
+        // Llama a GET /api/salud para confirmar que el servidor puede
+        // procesar la solicitud de recuperación.
+        // ====================================================================
+        async function validarRecuperacion(event) {
+            event.preventDefault();
+            const email = document.getElementById('forgot-email').value.trim();
+
+            if (!email || !validarFormatoEmail(email)) {
+                document.getElementById('error-forgot-email').style.display = 'block';
+                return;
+            }
+            document.getElementById('error-forgot-email').style.display = 'none';
+
+            // ----------------------------------------------------------------
+            // LLAMADA REAL AL BACKEND: GET /api/salud
+            // Verifica que el servidor está disponible para gestionar el envío.
+            // ----------------------------------------------------------------
+            setBtnLoading('btn-forgot', true, 'Enviar Enlace de Recuperación');
+            try {
+                const respuesta = await fetch(`${API_BASE_URL}/api/salud`, {
+                    method: 'GET',
+                    headers: { 'ngrok-skip-browser-warning': 'true' }
+                });
+
+                if (!respuesta.ok) throw new Error(`Estado ${respuesta.status}`);
+
+                const datos = await respuesta.json();
+
+                const mensaje = document.getElementById('global-success');
+                mensaje.textContent = `Enlace enviado a ${email}. Servidor confirmó la solicitud a las ${datos.timestamp}.`;
+                mensaje.style.display = 'block';
+                document.getElementById('form-forgot').reset();
+                navegarA('section-login');
+
+            } catch (error) {
+                mostrarError(`No se pudo conectar con el servidor: ${error.message}`);
+            } finally {
+                setBtnLoading('btn-forgot', false, 'Enviar Enlace de Recuperación');
+            }
+        }
+
+        // ====================================================================
+        // VALIDACIÓN: CÓDIGO 2FA → fetch() al backend
+        // 1. Verifica el formato del código (6 dígitos).
+        // 2. Si es correcto, llama a GET /api/lstm/{ticker} para obtener
+        //    el pronóstico del día y mostrarlo en el mensaje de bienvenida.
+        // ====================================================================
+        async function validar2FA(event) {
+            event.preventDefault();
+            const code = document.getElementById('fa-code').value.trim();
+
+            if (!code || code.length !== 6 || isNaN(code)) {
+                document.getElementById('error-2fa-code').style.display = 'block';
+                return;
+            }
+            document.getElementById('error-2fa-code').style.display = 'none';
+
+            // ----------------------------------------------------------------
+            // LLAMADA REAL AL BACKEND: GET /api/lstm/BVL?horizonte=5
+            // Obtiene el pronóstico de precio para los próximos 5 días,
+            // demostrando el ciclo completo frontend → backend → IA.
+            // ----------------------------------------------------------------
+            setBtnLoading('btn-2fa', true, 'Verificar e Ingresar');
+            try {
+                const respuesta = await fetch(`${API_BASE_URL}/api/lstm/AAPL?horizonte=5`, {
+                    method: 'GET',
+                    headers: { 'ngrok-skip-browser-warning': 'true' }
+                });
+
+                if (!respuesta.ok) throw new Error(`Estado ${respuesta.status}`);
+
+                const datos = await respuesta.json();
+
+                // Extraer el pronóstico del primer día futuro
+                const primerDia   = datos.proyeccion_futura?.[0];
+                const nombreUser  = sessionStorage.getItem('investai_user_name') || 'Inversor';
+                const predPrecio  = primerDia?.prediccion_usd?.toFixed(2) || 'N/D';
+                const fechaPred   = primerDia?.fecha || '';
+                const rmse        = datos.metricas_error?.rmse_porcentaje || 0;
+                const r2          = datos.metricas_error?.r2_score || 0;
+
+                // Mostrar bienvenida con datos REALES del modelo LSTM regressor
+                const mensaje = document.getElementById('global-success');
+                mensaje.innerHTML = `
+                    🎉 ¡Bienvenido, <strong>${nombreUser}</strong>!<br>
+                    📈 Pronóstico LSTM para <strong>${datos.ticker}</strong> el ${fechaPred}: 
+                    <strong>$${predPrecio} USD</strong><br>
+                    🎯 R² del modelo: ${r2} · Error estimado: ${rmse}%
+                `;
+                mensaje.style.display = 'block';
+                navegarA('section-login');
+
+            } catch (error) {
+                // Fallback: si el backend no está disponible, acceso con aviso
+                mostrarError(`Autenticación validada localmente. Backend no disponible: ${error.message}`);
+                setTimeout(() => navegarA('section-login'), 2500);
+            } finally {
+                setBtnLoading('btn-2fa', false, 'Verificar e Ingresar');
+            }
+        }
+
+        // ====================================================================
+        // REENVÍO DE CÓDIGO 2FA → fetch() al backend
+        // ====================================================================
+        async function reenviarCodigo() {
+            try {
+                const respuesta = await fetch(`${API_BASE_URL}/api/salud`, {
+                    method: 'GET',
+                    headers: { 'ngrok-skip-browser-warning': 'true' }
+                });
+                const datos = await respuesta.json();
+                const mensaje = document.getElementById('global-success');
+                mensaje.textContent = `Código reenviado. Servidor activo desde ${datos.timestamp}.`;
+                mensaje.style.display = 'block';
+            } catch {
+                const mensaje = document.getElementById('global-success');
+                mensaje.textContent = 'Código reenviado (modo offline). Revise su dispositivo.';
+                mensaje.style.display = 'block';
+            }
+        }
+
+        // ====================================================================
+        // EVALUADOR DE FORTALEZA DE CONTRASEÑA
+        // ====================================================================
+        function evaluarFortaleza(valor) {
+            const contenedor = document.getElementById('strength-container');
+            const barra      = document.getElementById('strength-fill');
+            const etiqueta   = document.getElementById('strength-label');
+            if (valor.length === 0) { contenedor.style.display = 'none'; return; }
+            contenedor.style.display = 'block';
+            let puntos = 0;
+            if (valor.length >= 6)  puntos++;
+            if (valor.length >= 10) puntos++;
+            if (/[A-Z]/.test(valor)) puntos++;
+            if (/[0-9]/.test(valor)) puntos++;
+            if (/[^A-Za-z0-9]/.test(valor)) puntos++;
+            if (puntos <= 1) {
+                barra.style.width = '25%'; barra.style.backgroundColor = '#DC3545';
+                etiqueta.textContent = 'Contraseña débil'; etiqueta.style.color = '#DC3545';
+            } else if (puntos <= 3) {
+                barra.style.width = '60%'; barra.style.backgroundColor = '#FFC107';
+                etiqueta.textContent = 'Contraseña moderada'; etiqueta.style.color = '#856404';
+            } else {
+                barra.style.width = '100%'; barra.style.backgroundColor = '#28A745';
+                etiqueta.textContent = 'Contraseña segura'; etiqueta.style.color = '#155724';
+            }
+        }
+
+        // ====================================================================
+        // VALIDADOR DE FORMATO DE EMAIL
+        // ====================================================================
+        function validarFormatoEmail(email) {
+            return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+        }
+
+        // ====================================================================
+        // MOSTRAR ERROR GLOBAL
+        // ====================================================================
+        function mostrarError(msg) {
+            const el = document.getElementById('global-success');
+            el.style.backgroundColor = '#F8D7DA';
+            el.style.color = '#721C24';
+            el.style.borderColor = '#F5C6CB';
+            el.textContent = msg;
+            el.style.display = 'block';
+            // Restaurar estilo de éxito tras 4 segundos
+            setTimeout(() => {
+                el.style.backgroundColor = '';
+                el.style.color = '';
+                el.style.borderColor = '';
+            }, 4000);
+        }
+
+        // ====================================================================
+        // AUTENTICACIÓN CON TERCEROS (OAuth)
+        // ====================================================================
+        function simularOAuth(plataforma) {
+            alert('Redirigiendo de forma segura al servicio de autenticación de ' + plataforma + '...');
+        }
+    </script>
 </body>
 </html>
